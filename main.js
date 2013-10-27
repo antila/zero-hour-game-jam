@@ -1,8 +1,10 @@
 
     var enemies = [];
+    var bullets = [];
 
     // create an new instance of a pixi stage
-    var stage = new PIXI.Stage(0x66FF99);
+    var interactive = true;
+    var stage = new PIXI.Stage(0x205309, interactive);
 
     // create a renderer instance
     var renderer = PIXI.autoDetectRenderer(1280, 720);
@@ -15,6 +17,9 @@
     // create a texture from an image path
     var texture = PIXI.Texture.fromImage("assets/player.png");
     var enemyTexture = PIXI.Texture.fromImage("assets/enemy.png");
+    var bulletTexture = PIXI.Texture.fromImage("assets/bullet.png");
+    var bloodTexture = PIXI.Texture.fromImage("assets/blood.png");
+
     // create a new Sprite using the texture
     var player = new PIXI.Sprite(texture);
 
@@ -37,40 +42,85 @@
         enemy.width = 32;
         enemy.height = 32;
         stage.addChild(enemy);
+        enemy.buttonMode = true;
+        enemy.interactive = true;
+
+        enemy.mouseover = function(data){
+            if (mouseDown === true) {
+                enemy.killed = true;
+                enemy.killCount = 20;
+            }
+        }
         enemies.push(enemy);
     }, 100);
 
+    var lost = false;
 
     function animate() {
 
         requestAnimFrame( animate );
 
-        // just for fun, lets rotate mr rabbit a little
-        //bunny.rotation += 0.1;
-
         for (var i = enemies.length - 1; i >= 0; i--) {
             var enemy = enemies[i];
 
             if (enemy.position.x > 1150) {
-                console.log('SHIT!');
+                if (lost === false) {
+                    alert('You lost');
+                    window.location = 'http://0hgame.eu/';
+                    lost = true;
+                }
             } else {
                 enemy.position.x += Math.random();
             }
+
+            if (enemy.killed === true) {
+                enemy.position.x -= enemy.killCount;
+                enemy.killCount = Math.floor(enemy.killCount / 2);
+            }
+
+            if (enemy.killCount === 0) {
+                enemies.splice(enemies.indexOf(enemy), 1);
+                stage.removeChild(enemy);
+
+                var blood =  new PIXI.Sprite(bloodTexture);
+                blood.position.x = enemy.position.x;
+                blood.position.y = enemy.position.y;
+                blood.rotation = Math.random() * 360; // OR WAS IT RADIANS???
+                blood.scale = new PIXI.Point(Math.random() * 3, Math.random() * 3);
+                stage.addChild(blood);
+            }
         };
+
+        if (mouseDown === true) {
+            var bullet =  new PIXI.Sprite(bulletTexture);
+            bullet.position.x = mouseX + (Math.random() * 16 - 32) + 16;
+            bullet.position.y = mouseY + (Math.random() * 16 - 32) + 16;
+            stage.addChild(bullet);
+
+            setTimeout(function() {
+                stage.removeChild(bullet);
+            }, 40);
+        }
+
+        player.position.y = mouseY;
 
         // render the stage
         renderer.render(stage);
     }
 
-    console.log('go');
-    $('canvas').on('click', function(event) {
-        console.log(event.clientX);
-
-        var bullet =  new PIXI.Sprite(texture);
-        bullet.position.x = event.clientX;
-        bullet.position.y = event.clientY;
-        stage.addChild(bullet);
-        enemies.push(bullet);
-
+    var mouseY = 0;
+    $(document).on('mousemove', function(event) {
+        //console.log(event.pageY);
+        mouseX = event.pageX;
+        mouseY = event.pageY;
     });
+
+    var mouseDown = false;
+    $(document).on('mousedown', function(event) {
+        mouseDown = true;
+    });
+    $(document).on('mouseup', function(event) {
+        mouseDown = false;
+    });
+
 
